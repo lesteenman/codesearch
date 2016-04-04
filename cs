@@ -15,7 +15,11 @@ show_help() {
 exclude_directories={}
 exclude_files={}
 if [ -f "$HOME/.cs_config" ]; then
-	echo "Loaded config"
+	# Example config:
+	# if [[ $PWD == "$HOME/codesearch"* ]]; then
+	# 	exclude_directories={.git}
+	# 	exclude_files={.gitconfig}
+	# fi
 	source $HOME/.cs_config
 fi
 
