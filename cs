@@ -27,9 +27,8 @@ if [ -z "$1" ]; then
 	show_help
 else
 	OPTIND=1
-	DEFAULT_CAPS=true
 	DEBUG=false
-	C=""
+	C="s"
 	W=""
 	# Default to case insensitive search if no caps were used
 
@@ -40,12 +39,10 @@ else
 				exit 0
 				;;
 			C)
-				C=""
-				DEFAULT_CAPS=false
+				C="s"
 				;;
 			c)
 				C="i"
-				DEFAULT_CAPS=false
 				;;
 			w)
 				W="w"
@@ -57,11 +54,6 @@ else
 	done
 	shift $(expr $OPTIND - 1 )
 
-	# Default to case insensitive if only lower case was used
-	if [[ $DEFAULT_CAPS == true && "$@" == $@{,,} ]]; then
-		C="i"
-	fi
-
 	exclude_string=""
 	for d in ${exclude_directories[@]}; do
 		exclude_string="$exclude_string --exclude-dir=$d"
@@ -72,7 +64,6 @@ else
 
 	SEARCH="$@"
 	if [[ $DEBUG == true ]]; then
-		echo "Default caps: $DEFAULT_CAPS"
 		echo "Arguments: -TInr$C$W"
 		echo "Exclude files: ${exclude_files[*]}"
 		echo "Exclude dirs: ${exclude_directories[*]}"
@@ -80,18 +71,8 @@ else
 		echo "Search term: $SEARCH"
 	fi
 
-	out=$(grep -TInr$C$W --color=always \
-		$exclude_string \
+	out=$(ag --color --group --color-path='36' --color-match='91' \
 		"$SEARCH")
-	# set -x
-	# out=$(grep -TInr$C$W --color=always --exclude=${exclude_files} --exclude-dir=${exclude_directories} "$SEARCH")
-	# for ex in "${exclude_files[@]}"; do
-	# 	out=$(echo $out | grep -v "$ex")
-	# done
-	# for ex in "${exclude_directories[@]}"; do
-	# 	out=$(echo $out | grep -v "$ex/")
-	# done
-	# set +x
 
 	if [ "$out" != "" ]; then
 		echo "$out" | less -RX
