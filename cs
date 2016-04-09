@@ -77,6 +77,6 @@ else
 	if [ "$out" != "" ]; then
 		echo "$out" | less -RX
 	else
-		echo "Nothing matched '$1'"
+		echo "Nothing matched '$SEARCH'"
 	fi
 fi
