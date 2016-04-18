@@ -87,7 +87,7 @@ else
 			clear
 			echo "$out" | less -RX
 		else
-			echo "Nothing matched '$1'"
+			echo "Nothing matched '$SEARCH'"
 		fi
 	fi
 fi
