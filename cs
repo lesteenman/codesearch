@@ -1,7 +1,7 @@
 #!/bin/bash
 
 show_help() {
-	echo "Usage: cs regex [-(c|C)] [-w]"
+	echo "Usage: cs regex [-(c|C)] [-w] [-n]"
 	echo ""
 	echo "case insensitive searches will be used if the search string contained only lowercase and numericals."
 	echo ""
@@ -9,6 +9,7 @@ show_help() {
 	echo "    -C: Force case sensitive searching."
 	echo "    -c: Force case insensitive searching."
 	echo "    -w: Exact word match."
+	echo "    -n: Number of matches."
 	echo "    -d: Debug mode."
 }
 
@@ -28,27 +29,30 @@ if [ -z "$1" ]; then
 else
 	OPTIND=1
 	DEBUG=false
-	C="s"
+	C="-S"
 	W=""
 	# Default to case insensitive search if no caps were used
 
-	while getopts "hcCwdv" opt; do
+	while getopts "hcCwdvn" opt; do
 		case "$opt" in
 			h|\?)
 				show_help
 				exit 0
 				;;
 			C)
-				C="s"
+				C="-s"
 				;;
 			c)
-				C="i"
+				C="-i"
 				;;
 			w)
-				W="w"
+				W="-w"
 				;;
 			d|v)
 				DEBUG=true
+				;;
+			n)
+				COUNT=true
 				;;
 		esac
 	done
@@ -63,20 +67,27 @@ else
 	done
 
 	SEARCH="$@"
+	ARGUMENTS="$C $W"
 	if [[ $DEBUG == true ]]; then
-		echo "Arguments: -TInr$C$W"
+		echo "Arguments: $ARGUMENTS"
 		echo "Exclude files: ${exclude_files[*]}"
 		echo "Exclude dirs: ${exclude_directories[*]}"
 		echo "Full exclude string: $exclude_string"
 		echo "Search term: $SEARCH"
 	fi
 
-	out=$(ag --color --group --color-path='36' --color-match='91' \
-		"$SEARCH")
-
-	if [ "$out" != "" ]; then
-		echo "$out" | less -RX
+	if [[ $COUNT == true ]]; then
+		out=$(ag --stats $ARGUMENTS "$SEARCH" | ag '[0-9] (files contained )?matches')
+		echo "$out"
 	else
-		echo "Nothing matched '$1'"
+		out=$(ag $ARGUMENTS --color --group --color-path='36' --color-match='91' \
+			"$SEARCH")
+
+		if [ "$out" != "" ]; then
+			clear
+			echo "$out" | less -RX
+		else
+			echo "Nothing matched '$1'"
+		fi
 	fi
 fi
