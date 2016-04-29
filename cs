@@ -64,14 +64,14 @@ else
 
 	exclude_string=""
 	for d in ${exclude_directories[@]}; do
-		exclude_string="$exclude_string --exclude-dir=$d"
+		exclude_string="$exclude_string --ignore-dir=$d"
 	done
 	for f in ${exclude_files[@]}; do
-		exclude_string="$exclude_string --exclude=$f"
+		exclude_string="$exclude_string --ignore=$f"
 	done
 
 	SEARCH="$@"
-	ARGUMENTS="$C $W"
+	ARGUMENTS="$C $W $exclude_string"
 	if [[ $DEBUG == true ]]; then
 		echo "Arguments: $ARGUMENTS"
 		echo "Exclude files: ${exclude_files[*]}"
