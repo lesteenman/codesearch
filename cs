@@ -10,6 +10,7 @@ show_help() {
 	echo "    -c: Force case insensitive searching."
 	echo "    -w: Exact word match."
 	echo "    -n: Number of matches."
+	echo "    -N: Number of matches per file."
 	echo "    -d: Debug mode."
 }
 
@@ -33,7 +34,7 @@ else
 	W=""
 	# Default to case insensitive search if no caps were used
 
-	while getopts "hcCwdvn" opt; do
+	while getopts "hcCwdvnN" opt; do
 		case "$opt" in
 			h|\?)
 				show_help
@@ -53,6 +54,9 @@ else
 				;;
 			n)
 				COUNT=true
+				;;
+			N)
+				COUNTPERFILE=true
 				;;
 		esac
 	done
@@ -77,7 +81,10 @@ else
 	fi
 
 	if [[ $COUNT == true ]]; then
-		out=$(ag --stats $ARGUMENTS "$SEARCH" | ag '[0-9] (files contained )?matches')
+		out=$(ag --stats --color $ARGUMENTS "$SEARCH" | ag '[0-9] (files contained )?matches')
+		echo "$out"
+	elif [[ $COUNTPERFILE == true ]]; then
+		out=$(ag -c --color $ARGUMENTS "$SEARCH" | awk -F : ' {count = gsub(/\x1b/, "\x1b"); if (count == 0) count += 40; else count += 50; printf "%-"count"s %s\n", $1, $2}')
 		echo "$out"
 	else
 		out=$(ag $ARGUMENTS --color --group --color-path='36' --color-match='91' \
