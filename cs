@@ -9,6 +9,8 @@ show_help() {
 	echo "    -C: Force case sensitive searching."
 	echo "    -c: Force case insensitive searching."
 	echo "    -w: Exact word match."
+	echo "    -s: Search for exact string."
+	echo "    -f [pattern]: Only search files matching pattern."
 	echo "    -n: Number of matches."
 	echo "    -N: Number of matches per file."
 	echo "    -d: Debug mode."
@@ -32,9 +34,12 @@ else
 	DEBUG=false
 	C="-S"
 	W=""
+	Q=""
+	G=""
+	FILEPATTERN=""
 	# Default to case insensitive search if no caps were used
 
-	while getopts "hcCwdvnN" opt; do
+	while getopts "hcCwdvnNf:s" opt; do
 		case "$opt" in
 			h|\?)
 				show_help
@@ -58,6 +63,15 @@ else
 			N)
 				COUNTPERFILE=true
 				;;
+			f)
+				if [ -z "$FILEPATTERN" ]; then
+					FILEPATTERN="${OPTARG}"
+				else
+					FILEPATTERN="$FILEPATTERN|${OPTARG}"
+				fi
+				;;
+			s)
+				Q="-Q"
 		esac
 	done
 	shift $(expr $OPTIND - 1 )
@@ -70,10 +84,16 @@ else
 		exclude_string="$exclude_string --ignore=$f"
 	done
 
+	if [ -n "$FILEPATTERN" ]; then
+		G="-G $FILEPATTERN"
+	fi
+
 	SEARCH="$@"
-	ARGUMENTS="$C $W $exclude_string"
+	PREARGUMENTS="$C $Q $W $exclude_string"
+	POSTARGUMENTS="$G"
 	if [[ $DEBUG == true ]]; then
-		echo "Arguments: $ARGUMENTS"
+		echo "Pre-Arguments: $PREARGUMENTS"
+		echo "Post-Arguments: $POSTARGUMENTS"
 		echo "Exclude files: ${exclude_files[*]}"
 		echo "Exclude dirs: ${exclude_directories[*]}"
 		echo "Full exclude string: $exclude_string"
@@ -81,16 +101,15 @@ else
 	fi
 
 	if [[ $COUNT == true ]]; then
-		out=$(ag --stats --color $ARGUMENTS "$SEARCH" | ag '[0-9] (files contained )?matches')
+		out=$(ag --stats --color $PREARGUMENTS "$SEARCH" $POSTARGUMENTS | ag '[0-9] (files contained )?matches')
 		echo "$out"
 	elif [[ $COUNTPERFILE == true ]]; then
-		out=$(ag -c --color $ARGUMENTS "$SEARCH" | awk -F : ' {count = gsub(/\x1b/, "\x1b"); if (count == 0) count += 40; else count += 50; printf "%-"count"s %s\n", $1, $2}')
+		out=$(ag -c --color $PREARGUMENTS "$SEARCH" $POSTARGUMENTS | awk -F : ' {count = gsub(/\x1b/, "\x1b"); if (count == 0) count += 40; else count += 50; printf "%-"count"s %s\n", $1, $2}')
 		echo "$out"
 	else
-		out=$(ag $ARGUMENTS --color --group --color-path='36' --color-match='91' \
-			"$SEARCH")
+		out=$(ag $PREARGUMENTS --color --group --color-path='36' --color-match='91' "$SEARCH" $POSTARGUMENTS)
 
-		if [ "$out" != "" ]; then
+		if [ -n "$out" ]; then
 			clear
 			echo "$out" | less -RX
 		else
