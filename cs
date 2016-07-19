@@ -111,7 +111,7 @@ else
 
 		if [ -n "$out" ]; then
 			clear
-			echo "$out" | less -RX
+			echo "$out" | sed -e 's/\([0-9]*:\)[ 	]*/\1 /' | less -RX
 		else
 			echo "Nothing matched '$SEARCH'"
 		fi
