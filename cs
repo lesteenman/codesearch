@@ -76,7 +76,7 @@ else
 	done
 	shift $(expr $OPTIND - 1 )
 
-	exclude_string=""
+	exclude_string="--ignore=*.socket"
 	for d in ${exclude_directories[@]}; do
 		exclude_string="$exclude_string --ignore-dir=$d"
 	done
