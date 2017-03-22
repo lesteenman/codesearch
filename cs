@@ -18,6 +18,8 @@ show_help() {
 	echo "    -R: Raw output."
 }
 
+hash rg 2>/dev/null || (echo >&2 "CS requires ripgrep to be installed" && exit 1)
+
 exclude_directories={}
 exclude_files={}
 if [ -f "$HOME/.cs_config" ]; then
@@ -42,7 +44,7 @@ else
 	LESS=true
 	# Default to case insensitive search if no caps were used
 
-	while getopts "hcCwdvnNf:sLR" opt; do
+	while getopts "hcCwdvnNf:sLRa" opt; do
 		case "$opt" in
 			h|\?)
 				show_help
@@ -74,7 +76,7 @@ else
 				fi
 				;;
 			s)
-				Q="-Q"
+				S="-F"
 				;;
 			L)
 				LESS=false
@@ -82,24 +84,28 @@ else
 			R)
 				RAW=true
 				;;
+			a)
+				CTX="-C 3"
+				;;
 		esac
 	done
 	shift $(expr $OPTIND - 1 )
 
-	exclude_string="--ignore=*.socket"
-	for d in ${exclude_directories[@]}; do
-		exclude_string="$exclude_string --ignore-dir=$d"
-	done
-	for f in ${exclude_files[@]}; do
-		exclude_string="$exclude_string --ignore=$f"
-	done
+	# exclude_string="--ignore-file *.socket"
+
+	# for d in ${exclude_directories[@]}; do
+	# 	exclude_string="$exclude_string --ignore-file $d"
+	# done
+	# for f in ${exclude_files[@]}; do
+	# 	exclude_string="$exclude_string --ignore-file $f"
+	# done
 
 	if [ -n "$FILEPATTERN" ]; then
 		G="-G $FILEPATTERN"
 	fi
 
 	SEARCH="$@"
-	PREARGUMENTS="$C $Q $W $exclude_string"
+	PREARGUMENTS="$C $S $W $CTX $exclude_string -n"
 	POSTARGUMENTS="$G"
 	if [[ $DEBUG == true ]]; then
 		echo "Pre-Arguments: $PREARGUMENTS"
@@ -110,8 +116,10 @@ else
 		echo "Search term: $SEARCH"
 	fi
 
+	COLORS="--colors path:fg:yellow --colors match:fg:green"
+
 	if [[ $RAW == true ]]; then
-		out=$(ag $PREARGUMENTS "$SEARCH" $POSTARGUMENTS 2>/dev/null)
+		out=$(rg $PREARGUMENTS "$SEARCH" $POSTARGUMENTS)
 
 		if [ -n "$out" ]; then
 			if [[ $LESS == true ]]; then
@@ -124,13 +132,13 @@ else
 			echo "Nothing matched '$SEARCH'"
 		fi
 	elif [[ $COUNT == true ]]; then
-		out=$(ag --stats --color $PREARGUMENTS "$SEARCH" $POSTARGUMENTS 2>/dev/null | ag '[0-9] (files contained )?matches')
+		out=$(rg --count --color always $PREARGUMENTS "$SEARCH" $POSTARGUMENTS 2>/dev/null | ag '[0-9] (files contained )?matches')
 		echo "$out"
 	elif [[ $COUNTPERFILE == true ]]; then
-		out=$(ag -c --color $PREARGUMENTS "$SEARCH" $POSTARGUMENTS 2>/dev/null | awk -F : ' {count = gsub(/\x1b/, "\x1b"); if (count == 0) count += 40; else count += 50; printf "%-"count"s %s\n", $1, $2}')
+		out=$(rg --count --color always $PREARGUMENTS "$SEARCH" $POSTARGUMENTS 2>/dev/null | awk -F : ' {count = gsub(/\x1b/, "\x1b"); if (count == 0) count += 40; else count += 50; printf "%-"count"s %s\n", $1, $2}')
 		echo "$out"
 	else
-		out=$(ag $PREARGUMENTS --color --group --color-path='36' --color-match='91' "$SEARCH" $POSTARGUMENTS 2>/dev/null)
+		out=$(rg --heading --color always $COLORS $PREARGUMENTS "$SEARCH" $POSTARGUMENTS)
 
 		if [ -n "$out" ]; then
 			if [[ $LESS == true ]]; then
